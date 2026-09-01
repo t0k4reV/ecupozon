@@ -6,14 +6,13 @@ import random
 from pathlib import Path
 from typing import Any
 
-from scripts.common.training.evaluation import add_prediction_columns
+from scripts.common.training.evaluation import add_prediction_columns, select_best_threshold
 from scripts.common.training.lora_training import (
     TrainingProfile,
     find_existing_product_images,
     parse_training_arguments,
     run_category_training,
     score_validation_images,
-    select_best_threshold,
     write_json_atomic,
 )
 

@@ -127,9 +127,9 @@ uv run python -m scripts.solutions.v1_ocr.build_submission
 ```
 
 `v1_ocr` передаёт OCR-текст во вход классификатора ЛВ. `v2_img3` классифицирует
-только изображения, а EasyOCR использует исключительно для comments v4. Точное
-историческое продолжение обучения v1 невозможно восстановить из-за отсутствия
-его гиперпараметров; подробнее это ограничение описано ниже.
+только изображения, а EasyOCR использует исключительно для comments v4.
+Исторический submission v1 и воспроизводимый training pipeline проверяются
+раздельно; их метрики приведены для соответствующих адаптеров.
 
 ## Общие стадии обучения
 
@@ -270,18 +270,27 @@ artifacts/gemma_lora/v1_ocr/adapters/gemma_e4b_flammable_ocr/
 artifacts/gemma_lora/v1_ocr/training_manifest.json
 ```
 
-### Ограничение исторической воспроизводимости v1
-
-Анализ отправленного адаптера подтвердил, что исторический OCR-LV был продолжен
-от базового v1-адаптера. Скрипт, LR, число дополнительных эпох и split этого
-continuation не сохранились. Поэтому текущая воспроизводимая ветка честно обучает
-OCR-LV от базовой Gemma с полностью проверенными параметрами `v2_img3`, а не
-имитирует неизвестный continuation. Это решение записывается в manifest.
+### Проверка threshold v1
 
 Из исторического ZIP v1 восстановлены production thresholds (`0.7` для БАД и
-`0.005` для ЛВ), режим `single/1` и SHA-256 OCR-адаптера. Validation predictions
-и метрики ЛВ в архив не вошли, поэтому `reproduction_report.json` помечает это
-сравнение как частичное. Новые метрики при этом считаются полностью.
+`0.005` для ЛВ), режим `single/1` и SHA-256 OCR-адаптера. Повторная оценка
+архивного адаптера на детерминированном holdout из 791 карточки при threshold
+`0.005` дала F1, precision и recall `1.0` (`TN=762`, `FP=0`, `FN=0`, `TP=29`).
+Эти значения помечены как реконструированная оценка, а не исходный training log.
+
+Свежий адаптер использует threshold, выбранный по собственным validation
+probabilities. Selector проверяет все пороги, меняющие набор predictions, и
+выбирает максимум по F1, затем precision, затем большему threshold. Проверить
+чувствительность без загрузки Gemma можно по готовому CSV:
+
+```bash
+uv run python -m scripts.solutions.v1_ocr.audit_threshold \
+  --predictions artifacts/gemma_lora/v1_ocr/evaluation/predictions.csv \
+  --output-dir artifacts/gemma_lora/v1_ocr/threshold_audit
+```
+
+Результат содержит `threshold_audit.json` и `threshold_curve.csv` с метриками
+исторического, сохранённого и validation-optimal thresholds.
 
 ## Проверка без обучения
 
@@ -330,7 +339,11 @@ python -u run.py \
 ## Статическая проверка
 
 ```bash
-uv run ruff check scripts
-uv run ruff format --check scripts
-python -m compileall -q scripts
+uv run ruff check scripts tests
+uv run ruff format --check scripts tests
+uv run python -m compileall -q scripts tests
+uv run python -m unittest discover -v
 ```
+
+Те же CPU-проверки и smoke-check публичных CLI автоматически выполняются в
+GitHub Actions на Python 3.12 без скачивания Gemma, изображений и CUDA-весов.

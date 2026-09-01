@@ -7,7 +7,7 @@ import random
 from pathlib import Path
 from typing import Any
 
-from scripts.common.training.evaluation import add_prediction_columns
+from scripts.common.training.evaluation import add_prediction_columns, select_best_threshold
 from scripts.common.training.lora_training import (
     TrainingProfile,
     calculate_sha256,
@@ -15,7 +15,6 @@ from scripts.common.training.lora_training import (
     get_default_project_root,
     run_category_training,
     score_validation_images,
-    select_best_threshold,
     write_json_atomic,
 )
 from scripts.common.training.ocr_training import build_ocr_training_content, load_ocr_cache

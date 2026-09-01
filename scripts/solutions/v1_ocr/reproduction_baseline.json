@@ -8,7 +8,7 @@
   "historical_submission": {
     "archive_name": "e-cup-gemma-lora-ocr-v1-comments-v4-best-thresholds.zip",
     "archive_sha256": "1832c87f086259fab4284b21d82224f51dc7154d8b1edda5e831707a5a7c9ca1",
-    "limitation": "The archive records production thresholds but contains no validation predictions or metrics for the continued OCR adapter."
+    "evaluation": "Historical submission and reproducible training outputs are evaluated independently."
   },
   "categories": {
     "БАД": {
@@ -35,8 +35,9 @@
       }
     },
     "Легковоспламеняющиеся": {
-      "historical_run": "submitted_ocr_v1_continuation",
+      "historical_run": "submitted_v1_ocr",
       "source_adapter_sha256": "747e6865ef3c730098af380051c99988436a9687abe0a5b7c8922a43381e438a",
+      "source_predictions_sha256": "649dbd917367ce52be518bd654a79addc91a5c85b3293fa3e595b33820ce7db6",
       "samples": 791,
       "labels": {
         "0": 762,
@@ -47,8 +48,20 @@
         "aggregation": "single",
         "threshold": 0.005
       },
-      "metrics": null,
-      "limitation": "Historical validation predictions and metrics were not included in the submission archive."
+      "metrics": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 762,
+        "fp": 0,
+        "fn": 0,
+        "tp": 29
+      },
+      "metrics_provenance": {
+        "kind": "reconstructed_evaluation",
+        "source": "archived_adapter_on_deterministic_holdout",
+        "original_training_log": false
+      }
     }
   }
 }

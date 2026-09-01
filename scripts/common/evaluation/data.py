@@ -167,7 +167,9 @@ def compare_with_baseline(
     }
     return {
         "checks_passed": all(result["passed"] for result in comparisons.values()),
-        "fully_verified": all(result["fully_verified"] for result in comparisons.values()),
+        "fully_verified": baseline["completeness"] == "complete"
+        and all(result["fully_verified"] for result in comparisons.values()),
+        "baseline_completeness": baseline["completeness"],
         "metric_absolute_tolerance": metric_tolerance,
         "confusion_count_tolerance": count_tolerance,
         "categories": comparisons,

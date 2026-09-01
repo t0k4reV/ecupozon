@@ -12,8 +12,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from scripts.common.training.evaluation import calculate_binary_metrics
-
 MODEL_ID = "google/gemma-4-E4B-it"
 TRAINING_SEED = 2026
 MINORITY_CLASS_TARGET_SHARE = 0.30
@@ -282,21 +280,6 @@ def score_validation_images(
         row["p_max"] = max(scores.values())
         rows.append(row)
     return pd.DataFrame(rows)
-
-
-def select_best_threshold(labels: Any, probabilities: Any) -> dict[str, Any]:
-    best_key: tuple[float, float, float] | None = None
-    best_metrics: dict[str, Any] | None = None
-    for threshold_index in range(1, 200):
-        threshold = threshold_index / 200
-        metrics = calculate_binary_metrics(labels, probabilities, threshold)
-        candidate_key = (metrics["f1"], metrics["precision"], threshold)
-        if best_key is None or candidate_key > best_key:
-            best_key = candidate_key
-            best_metrics = metrics
-    if best_metrics is None:
-        raise RuntimeError("No threshold candidate was evaluated")
-    return best_metrics
 
 
 def create_training_collator(

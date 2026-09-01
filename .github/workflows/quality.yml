@@ -1,0 +1,44 @@
+name: Quality checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  cpu-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install CPU check dependencies
+        run: >-
+          python -m pip install
+          ruff==0.16.5
+          pandas==2.3.3
+          scikit-learn==1.7.2
+      - name: Lint
+        run: ruff check scripts tests
+      - name: Check formatting
+        run: ruff format --check scripts tests
+      - name: Compile Python sources
+        run: python -m compileall -q scripts tests
+      - name: Run unit tests
+        run: python -m unittest discover -v
+      - name: Smoke-check public commands
+        run: |
+          python -m scripts.solutions.v1_ocr.train --help
+          python -m scripts.solutions.v1_ocr.post_training --help
+          python -m scripts.solutions.v1_ocr.audit_threshold --help
+          python -m scripts.solutions.v1_ocr.build_submission --help
+          python -m scripts.solutions.v2_img3.train --help
+          python -m scripts.solutions.v2_img3.post_training --help
+          python -m scripts.solutions.v2_img3.audit_comments --help
+          python -m scripts.solutions.v2_img3.build_submission --help

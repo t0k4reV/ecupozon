@@ -45,6 +45,40 @@ def calculate_binary_metrics(
     }
 
 
+def get_threshold_candidates(probabilities: Any) -> tuple[float, ...]:
+    """Return every threshold that can produce a distinct prediction set."""
+    probabilities_array = probabilities.astype(float).to_numpy()
+    if len(probabilities_array) == 0:
+        raise ValueError("Probabilities must be non-empty")
+    values = [float(value) for value in probabilities_array]
+    if not all(math.isfinite(value) for value in values):
+        raise ValueError("Probabilities must be finite")
+    if any(value < 0.0 or value > 1.0 for value in values):
+        raise ValueError("Probabilities must be between 0 and 1")
+    return tuple(sorted({0.0, 1.0, *values}))
+
+
+def calculate_threshold_curve(labels: Any, probabilities: Any) -> list[dict[str, Any]]:
+    """Calculate metrics for the exact set of meaningful thresholds."""
+    return [
+        calculate_binary_metrics(labels, probabilities, threshold)
+        for threshold in get_threshold_candidates(probabilities)
+    ]
+
+
+def select_best_threshold(labels: Any, probabilities: Any) -> dict[str, Any]:
+    """Select by F1, then precision, then the larger exact threshold."""
+    candidates = calculate_threshold_curve(labels, probabilities)
+    return max(
+        candidates,
+        key=lambda metrics: (
+            metrics["f1"],
+            metrics["precision"],
+            metrics["threshold"],
+        ),
+    )
+
+
 def add_prediction_columns(
     predictions: Any,
     probability_column: str,

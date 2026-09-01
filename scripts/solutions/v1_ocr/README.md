@@ -11,8 +11,8 @@ uv run python -m scripts.solutions.v1_ocr.build_submission
 ```
 
 Точные пути артефактов и inference-контракт находятся в `profile.json`.
-Историческое ограничение воспроизводимости OCR-адаптера описано в корневом
-README и фиксируется в training manifest.
+Исторический submission и результаты воспроизводимого обучения проверяются
+раздельно; provenance фиксируется в baseline и training manifest.
 
 Post-training pipeline использует тот же production runtime, что и submission:
 EasyOCR-текст первого фото входит во вход классификатора ЛВ. Он сохраняет
@@ -20,6 +20,14 @@ EasyOCR-текст первого фото входит во вход класс
 `reproduction_report.json` в `artifacts/gemma_lora/v1_ocr/evaluation/`.
 
 Для БАД доступен полный исторический baseline. Для ЛВ архив лучшего v1 фиксирует
-production threshold `0.005`, но не содержит validation predictions и метрик.
-Поэтому отчёт проверяет доступные факты и явно помечает историческое сравнение
-ЛВ как `partial`, не подменяя отсутствующие результаты оценкой новой модели.
+production threshold `0.005`; его оценка на детерминированном holdout сохранена
+отдельно от метрик нового адаптера. Свежий threshold выбирается по собственным
+validation probabilities.
+
+Проверить исторический, сохранённый и validation-optimal thresholds без Gemma:
+
+```bash
+uv run python -m scripts.solutions.v1_ocr.audit_threshold \
+  --predictions artifacts/gemma_lora/v1_ocr/evaluation/predictions.csv \
+  --output-dir artifacts/gemma_lora/v1_ocr/threshold_audit
+```
