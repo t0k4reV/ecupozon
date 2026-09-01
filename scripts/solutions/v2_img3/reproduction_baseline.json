@@ -1,0 +1,56 @@
+{
+  "schema": "e_cup.gemma_lora_reproduction_baseline",
+  "schema_version": 1,
+  "solution": "v2_img3",
+  "completeness": "complete",
+  "metric_absolute_tolerance": 0.005,
+  "confusion_count_tolerance": 3,
+  "categories": {
+    "БАД": {
+      "historical_run": "gemma_bad_img3_eval_20260830",
+      "source_predictions_sha256": "fd314f8c18f35b0f96d3da7f731ce5e775aefe5fef4efe78f0f681e4d99161b5",
+      "samples": 557,
+      "labels": {
+        "0": 162,
+        "1": 395
+      },
+      "inference": {
+        "max_images": 1,
+        "aggregation": "single",
+        "threshold": 0.7
+      },
+      "metrics": {
+        "f1": 0.9555273189326555,
+        "precision": 0.9591836734693877,
+        "recall": 0.9518987341772152,
+        "tn": 146,
+        "fp": 16,
+        "fn": 19,
+        "tp": 376
+      }
+    },
+    "Легковоспламеняющиеся": {
+      "historical_run": "gemma_lv_img3_20260829",
+      "source_predictions_sha256": "2c26bf791f0d06cdbf1582e7ef6880f31888eeafdb5d47426b10e60091703eba",
+      "samples": 791,
+      "labels": {
+        "0": 762,
+        "1": 29
+      },
+      "inference": {
+        "max_images": 3,
+        "aggregation": "max",
+        "threshold": 0.005
+      },
+      "metrics": {
+        "f1": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "tn": 762,
+        "fp": 0,
+        "fn": 0,
+        "tp": 29
+      }
+    }
+  }
+}

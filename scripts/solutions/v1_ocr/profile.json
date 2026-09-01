@@ -1,0 +1,27 @@
+{
+  "schema": "e_cup.solution_profile",
+  "schema_version": 1,
+  "solution": "v1_ocr",
+  "display_name": "v1-OCR",
+  "training": {
+    "ocr_cache": "artifacts/gemma_lora/v1_ocr/easyocr_training_cache.jsonl",
+    "flammable_result": "artifacts/gemma_lora/v1_ocr/adapters/gemma_e4b_flammable_ocr/training_result.json",
+    "flammable_inference": {
+      "max_images": 1,
+      "aggregation": "single"
+    },
+    "reproduction": {
+      "strategy": "train_from_base_model",
+      "training_profile": "same_optimizer_split_and_image_policy_as_v2_img3",
+      "historical_note": "The submitted OCR adapter was continued from v1, but its continuation hyperparameters were not preserved; this pipeline uses only verified settings.",
+      "baseline": "scripts/solutions/v1_ocr/reproduction_baseline.json",
+      "post_training_module": "scripts.solutions.v1_ocr.post_training"
+    }
+  },
+  "submission": {
+    "archive_name": "e-cup-gemma-lora-ocr-v1-comments-v4.zip",
+    "manifest_schema": "e_cup.gemma_lora_ocr_v1_comments_submission",
+    "ocr_affects_classification": true,
+    "classifier_description": "For flammable goods, the first image and its EasyOCR text are passed to Gemma."
+  }
+}

@@ -1,0 +1,48 @@
+[project]
+name = "e-cup-gemma-pipeline"
+version = "0.1.0"
+description = "Reproducible Gemma LoRA training and E-CUP submission pipelines"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "accelerate==1.14.0",
+    "easyocr==1.7.2",
+    "huggingface-hub==1.29.0",
+    "imageio==2.37.4",
+    "lazy-loader==0.5",
+    "networkx==3.6.1",
+    "opencv-python-headless==5.0.0.93",
+    "pandas==2.3.3",
+    "peft==0.20.0",
+    "pillow==12.3.0",
+    "pyclipper==1.4.0",
+    "python-bidi==0.6.11",
+    "pyyaml==6.0.2",
+    "safetensors==0.8.0",
+    "scikit-image==0.26.0",
+    "scikit-learn==1.7.2",
+    "sentencepiece==0.2.2",
+    "shapely==2.1.2",
+    "tifffile==2026.8.23",
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "transformers==5.7.0",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
+
+[dependency-groups]
+dev = ["ruff==0.16.5"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM"]

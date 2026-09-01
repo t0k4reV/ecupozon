@@ -1,0 +1,23 @@
+{
+  "schema": "e_cup.solution_profile",
+  "schema_version": 1,
+  "solution": "v2_img3",
+  "display_name": "v2-img3",
+  "training": {
+    "flammable_result": "artifacts/gemma_lora/v2_img3/adapters/gemma_e4b_flammable/training_result.json",
+    "flammable_inference": {
+      "max_images": 3,
+      "aggregation": "max"
+    },
+    "reproduction": {
+      "baseline": "scripts/solutions/v2_img3/reproduction_baseline.json",
+      "post_training_module": "scripts.solutions.v2_img3.post_training"
+    }
+  },
+  "submission": {
+    "archive_name": "e-cup-gemma-lora-v2-img3-comments-v4.zip",
+    "manifest_schema": "e_cup.gemma_lora_v2_img3_comments_submission",
+    "ocr_affects_classification": false,
+    "classifier_description": "For flammable goods, Gemma scores up to three images separately and uses the maximum probability; OCR is used only for comments."
+  }
+}
