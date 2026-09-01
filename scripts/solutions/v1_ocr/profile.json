@@ -13,7 +13,6 @@
     "reproduction": {
       "strategy": "train_from_base_model",
       "training_profile": "same_optimizer_split_and_image_policy_as_v2_img3",
-      "comparison_note": "Historical submission and reproducible training outputs are evaluated independently.",
       "baseline": "scripts/solutions/v1_ocr/reproduction_baseline.json",
       "post_training_module": "scripts.solutions.v1_ocr.post_training"
     }

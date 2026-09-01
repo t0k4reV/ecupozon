@@ -36,8 +36,8 @@ jobs:
         run: |
           python -m scripts.solutions.v1_ocr.train --help
           python -m scripts.solutions.v1_ocr.post_training --help
-          python -m scripts.solutions.v1_ocr.audit_threshold --help
           python -m scripts.solutions.v1_ocr.build_submission --help
+          python -m scripts.common.training.recalibrate_thresholds --help
           python -m scripts.solutions.v2_img3.train --help
           python -m scripts.solutions.v2_img3.post_training --help
           python -m scripts.solutions.v2_img3.audit_comments --help

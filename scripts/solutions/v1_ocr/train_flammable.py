@@ -128,6 +128,7 @@ def main() -> None:
             "p_img1",
             float(selection["threshold"]),
         )
+        predictions["threshold"] = float(selection["threshold"])
         predictions.to_csv(output_directory / "validation_predictions.csv", index=False)
         validation = {
             "selected_mode": "single_first_image_with_ocr",

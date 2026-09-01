@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-import json
-import tempfile
 import unittest
-from pathlib import Path
 
 import pandas as pd
 
 from scripts.common.evaluation.data import compare_with_baseline
-from scripts.common.evaluation.threshold_audit import run_threshold_audit
-from scripts.common.submission.configuration import SUPPORTED_CATEGORIES
+from scripts.common.submission.configuration import (
+    FLAMMABLE_CATEGORY,
+    SUPPLEMENTS_CATEGORY,
+    SUPPORTED_CATEGORIES,
+    build_submission_config,
+)
+from scripts.common.training.build_training_manifest import validate_inference_contract
 from scripts.common.training.evaluation import select_best_threshold
-
-FLAMMABLE_CATEGORY = "Легковоспламеняющиеся"
 
 
 class ThresholdTests(unittest.TestCase):
@@ -27,44 +27,7 @@ class ThresholdTests(unittest.TestCase):
         self.assertEqual(metrics["f1"], 1.0)
         self.assertEqual((metrics["tn"], metrics["fp"], metrics["fn"], metrics["tp"]), (2, 0, 0, 2))
 
-    def test_audit_keeps_historical_and_saved_thresholds_separate(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary_name:
-            root = Path(temporary_name)
-            predictions_path = root / "validation_predictions.csv"
-            output_directory = root / "audit"
-            pd.DataFrame(
-                {
-                    "id": ["1", "2", "3", "4"],
-                    "category": [FLAMMABLE_CATEGORY] * 4,
-                    "label": self.labels,
-                    "probability": self.probabilities,
-                    "threshold": [0.98] * 4,
-                }
-            ).to_csv(predictions_path, index=False)
-
-            report = run_threshold_audit(
-                predictions_path=predictions_path,
-                output_directory=output_directory,
-                solution="v1_ocr",
-                category=FLAMMABLE_CATEGORY,
-                historical_threshold=0.005,
-            )
-
-            historical = report["thresholds"]["historical_threshold_on_current_predictions"][
-                "metrics"
-            ]
-            saved = report["thresholds"]["saved_adapter"]["metrics"]
-            optimal = report["thresholds"]["validation_optimal"]["metrics"]
-            self.assertEqual(historical["threshold"], 0.005)
-            self.assertEqual(saved["threshold"], 0.98)
-            self.assertAlmostEqual(optimal["threshold"], 0.0011695101857185364)
-            self.assertTrue((output_directory / "threshold_curve.csv").is_file())
-            written_report = json.loads(
-                (output_directory / "threshold_audit.json").read_text(encoding="utf-8")
-            )
-            self.assertEqual(written_report, report)
-
-    def test_partial_baseline_remains_distinct_with_reconstructed_metrics(self) -> None:
+    def test_reference_comparison_is_secondary_for_partial_baseline(self) -> None:
         metrics = {
             "threshold": 0.5,
             "samples": 4,
@@ -100,6 +63,39 @@ class ThresholdTests(unittest.TestCase):
         self.assertTrue(comparison["checks_passed"])
         self.assertFalse(comparison["fully_verified"])
         self.assertEqual(comparison["baseline_completeness"], "partial")
+
+    def test_selected_thresholds_flow_into_submission_config(self) -> None:
+        supplements_inference = {
+            "max_images": 1,
+            "aggregation": "single",
+            "threshold": 0.8,
+        }
+        flammable_shape = {"max_images": 3, "aggregation": "max"}
+        flammable_inference = {**flammable_shape, "threshold": 0.85}
+        validate_inference_contract(
+            SUPPLEMENTS_CATEGORY,
+            supplements_inference,
+            flammable_shape,
+        )
+        validate_inference_contract(
+            FLAMMABLE_CATEGORY,
+            flammable_inference,
+            flammable_shape,
+        )
+
+        config = build_submission_config(
+            solution="test",
+            model_id="model",
+            adapters={SUPPLEMENTS_CATEGORY: "supplements", FLAMMABLE_CATEGORY: "flammable"},
+            inference_by_category={
+                SUPPLEMENTS_CATEGORY: supplements_inference,
+                FLAMMABLE_CATEGORY: flammable_inference,
+            },
+            ocr_affects_classification=False,
+        )
+
+        self.assertEqual(config["thresholds"][SUPPLEMENTS_CATEGORY], 0.8)
+        self.assertEqual(config["thresholds"][FLAMMABLE_CATEGORY], 0.85)
 
 
 if __name__ == "__main__":

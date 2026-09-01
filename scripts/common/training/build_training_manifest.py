@@ -100,16 +100,13 @@ def validate_inference_contract(
     threshold = inference.get("threshold")
     if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
         raise TypeError(f"Invalid inference threshold for {category}")
-    if category == "БАД":
-        if inference != {"max_images": 1, "aggregation": "single", "threshold": 0.7}:
-            raise ValueError("Supplements inference contract does not match production")
-    else:
-        if (
-            inference.get("max_images") != flammable_inference["max_images"]
-            or inference.get("aggregation") != flammable_inference["aggregation"]
-            or not 0 < float(threshold) < 1
-        ):
-            raise ValueError("Flammable inference contract does not match production")
+    expected_shape = (
+        {"max_images": 1, "aggregation": "single"} if category == "БАД" else flammable_inference
+    )
+    if any(inference.get(key) != value for key, value in expected_shape.items()):
+        raise ValueError(f"Inference contract does not match production for {category}")
+    if not 0.0 <= float(threshold) <= 1.0:
+        raise ValueError(f"Inference threshold must be between 0 and 1 for {category}")
 
 
 def main() -> None:

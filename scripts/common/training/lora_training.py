@@ -457,7 +457,7 @@ def create_data_split(products: Any, profile: TrainingProfile) -> tuple[Any, Any
         }
         if actual_sizes != profile.expected_split_sizes:
             raise ValueError(
-                f"Unexpected historical split sizes for {profile.category}: "
+                f"Unexpected split sizes for {profile.category}: "
                 f"expected {profile.expected_split_sizes}, got {actual_sizes}"
             )
     return training_products_raw, training_products, validation_products, split

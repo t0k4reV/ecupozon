@@ -18,7 +18,6 @@ from scripts.common.training.lora_training import (
 
 MAX_IMAGE_SIDE = 1024
 EVALUATION_BATCH_SIZE = 2
-HISTORICAL_THRESHOLD = 0.005
 
 PROFILE = TrainingProfile(
     category="Легковоспламеняющиеся",
@@ -93,14 +92,13 @@ def evaluate_flammable_adapter(
         "p_max",
         float(max_three_metrics["threshold"]),
     )
+    predictions["threshold"] = float(max_three_metrics["threshold"])
     predictions.to_csv(output_directory / "validation_predictions.csv", index=False)
     selection = {
         "selected_mode": "max_first_three",
         "threshold_policy": "validation_f1_then_precision_then_threshold",
         "first_image": first_image_metrics,
         "max_first_three": max_three_metrics,
-        "historical_threshold": HISTORICAL_THRESHOLD,
-        "matches_historical_threshold": (max_three_metrics["threshold"] == HISTORICAL_THRESHOLD),
     }
     write_json_atomic(output_directory / "selection.json", selection)
     return {

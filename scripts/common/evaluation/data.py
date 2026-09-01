@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from pathlib import Path
 from typing import Any
 
@@ -119,12 +118,6 @@ def _compare_category(
         ),
         "labels_match": (
             actual["labels"] == expected["labels"] if expected.get("labels") is not None else None
-        ),
-        "threshold_matches": math.isclose(
-            float(actual["threshold"]),
-            float(expected["inference"]["threshold"]),
-            rel_tol=0.0,
-            abs_tol=1e-12,
         ),
         "metrics_within_tolerance": (
             all(delta <= metric_tolerance for delta in metric_deltas.values())

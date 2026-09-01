@@ -275,10 +275,8 @@ def load_and_validate_training_manifest(
         threshold = inference.get("threshold")
         if not isinstance(threshold, (int, float)) or isinstance(threshold, bool):
             raise TypeError(f"Invalid inference threshold for {category}")
-        if category == SUPPLEMENTS_CATEGORY and float(threshold) != 0.7:
-            raise ValueError("Supplements threshold must be 0.7")
-        if category == FLAMMABLE_CATEGORY and not 0 < float(threshold) < 1:
-            raise ValueError("Flammable threshold must be between 0 and 1")
+        if not 0.0 <= float(threshold) <= 1.0:
+            raise ValueError(f"Threshold must be between 0 and 1 for {category}")
         relative_adapter_path = parse_safe_relative_path(str(category_manifest.get("adapter", "")))
         adapter_directory = (project_root / relative_adapter_path).resolve()
         if project_root != adapter_directory and project_root not in adapter_directory.parents:

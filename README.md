@@ -41,9 +41,10 @@ scripts/
 ```
 
 В каталоге каждого решения находятся собственные `README.md`, `train.py`,
-`post_training.py`, `build_submission.py`, `profile.json` и исторический
-`reproduction_baseline.json`. Профиль является единственным источником путей
-артефактов, baseline и production inference-контракта конкретного решения.
+`post_training.py`, `build_submission.py`, `profile.json` и reference-метрики
+для дополнительной диагностики. Профиль является единственным источником путей
+артефактов и формы production inference-контракта конкретного решения; выбранные
+thresholds берутся только из проверенного training manifest.
 
 - [`v1_ocr`](scripts/solutions/v1_ocr/README.md) — классификация ЛВ с OCR-текстом;
 - [`v2_img3`](scripts/solutions/v2_img3/README.md) — image-only классификация ЛВ с max3.
@@ -178,8 +179,8 @@ uv run python -m scripts.solutions.v1_ocr.build_submission
 
 `v1_ocr` передаёт OCR-текст во вход классификатора ЛВ. `v2_img3` классифицирует
 только изображения, а EasyOCR использует исключительно для comments v4.
-Исторический submission v1 и воспроизводимый training pipeline проверяются
-раздельно; их метрики приведены для соответствующих адаптеров.
+Production thresholds всегда выбираются по validation predictions текущих
+адаптеров и сохраняются в их training manifests.
 
 ## Общие стадии обучения
 
@@ -208,7 +209,8 @@ uv run python -m scripts.solutions.v1_ocr.build_submission
 | oversampling | меньший класс до `30%` только в train |
 
 `БАД` использует split `90/10`, одно случайное фото из всех доступных и RGB без
-EXIF transpose или resize. Production использует первое фото и threshold `0.7`.
+EXIF transpose или resize. Production использует первое фото. Threshold
+подбирается на validation после завершения обучения.
 
 Обе воспроизводимые ветки ЛВ используют split `80/20`: 3 160 train-строк до
 oversampling, 4 352 после него и 791 validation. На каждом train-примере подаётся
@@ -243,17 +245,17 @@ artifacts/gemma_lora/v2_img3/evaluation/
 ├── comments_review.csv
 ├── metrics.json
 ├── comments_audit.json
-└── reproduction_report.json
+└── evaluation_report.json
 ```
 
-`reproduction_report.json` сравнивает F1, precision, recall, confusion matrix,
-размеры holdout и production thresholds с зафиксированным историческим baseline.
-Для стохастического CUDA-обучения отдельно показываются точные отклонения и
-результат сравнения с явно записанными допусками.
+`evaluation_report.json` содержит выбранные thresholds, F1, precision, recall,
+confusion matrix, размеры holdout, аудит комментариев и provenance модели.
+Reference-метрики сохраняются отдельным диагностическим блоком и не влияют на
+выбор thresholds или успешность текущего pipeline.
 
 Комментарии можно пересчитать по уже сохранённым predictions без повторной
 загрузки Gemma. Без `--ocr-cache` используется ограниченный production-режим
-EasyOCR. С полным историческим кэшем выполняется точный comments v4 audit:
+EasyOCR. С полным reference-кэшем выполняется точный comments v4 audit:
 
 ```bash
 uv run python -m scripts.solutions.v2_img3.audit_comments \
@@ -264,8 +266,8 @@ uv run python -m scripts.solutions.v2_img3.audit_comments \
   --output-dir artifacts/gemma_lora/v2_img3/comments_v4_reproduction
 ```
 
-Golden CSV и dataset-specific OCR-кэш нужны только для проверки исторического
-результата и не включаются в submission. Pipeline сохраняет новый
+Golden CSV и dataset-specific OCR-кэш нужны только для проверки комментариев и
+не включаются в submission. Pipeline сохраняет новый
 `comments_review.csv`, машинно-читаемый отчёт сравнения и только отличающиеся
 карточки в `comment_mismatches.csv`.
 
@@ -320,27 +322,31 @@ artifacts/gemma_lora/v1_ocr/adapters/gemma_e4b_flammable_ocr/
 artifacts/gemma_lora/v1_ocr/training_manifest.json
 ```
 
-### Проверка threshold v1
+## Калибровка thresholds
 
-Из исторического ZIP v1 восстановлены production thresholds (`0.7` для БАД и
-`0.005` для ЛВ), режим `single/1` и SHA-256 OCR-адаптера. Повторная оценка
-архивного адаптера на детерминированном holdout из 791 карточки при threshold
-`0.005` дала F1, precision и recall `1.0` (`TN=762`, `FP=0`, `FN=0`, `TP=29`).
-Эти значения помечены как реконструированная оценка, а не исходный training log.
+После обучения каждый адаптер сохраняет validation probabilities и выбирает
+production threshold по единому правилу: максимальный F1, затем precision,
+затем большее значение threshold. Выбранное значение последовательно попадает
+в `selection.json`, `training_result.json`, `training_manifest.json` и
+submission runtime.
 
-Свежий адаптер использует threshold, выбранный по собственным validation
-probabilities. Selector проверяет все пороги, меняющие набор predictions, и
-выбирает максимум по F1, затем precision, затем большему threshold. Проверить
-чувствительность без загрузки Gemma можно по готовому CSV:
+`validation_predictions.csv` хранит holdout probabilities и итоговые verdict,
+`selection.json` — выбранный threshold, F1, precision, recall и confusion matrix,
+а `recalibration_report.json` — SHA-256 источников и изменения для всех трёх
+адаптеров.
+
+Для уже обученных адаптеров thresholds можно пересчитать без Gemma, CUDA и
+повторного обучения. Первая команда выполняет dry-run, вторая применяет
+проверенные изменения:
 
 ```bash
-uv run python -m scripts.solutions.v1_ocr.audit_threshold \
-  --predictions artifacts/gemma_lora/v1_ocr/evaluation/predictions.csv \
-  --output-dir artifacts/gemma_lora/v1_ocr/threshold_audit
+uv run python -m scripts.common.training.recalibrate_thresholds
+uv run python -m scripts.common.training.recalibrate_thresholds --apply
 ```
 
-Результат содержит `threshold_audit.json` и `threshold_curve.csv` с метриками
-исторического, сохранённого и validation-optimal thresholds.
+Команда проверяет SHA-256 исходных validation artifacts и адаптеров, обновляет
+оба manifests и сохраняет итог в
+`artifacts/gemma_lora/recalibration_report.json`.
 
 ## Проверка без обучения
 

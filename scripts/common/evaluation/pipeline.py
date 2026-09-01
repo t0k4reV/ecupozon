@@ -87,12 +87,6 @@ def load_reproduction_baseline(baseline_path: Path, solution: str) -> dict[str, 
     return baseline
 
 
-def _reproduction_status(comparison: dict[str, Any], comments_passed: bool) -> str:
-    prefix = "complete" if comparison["fully_verified"] else "partial"
-    suffix = "pass" if comparison["checks_passed"] and comments_passed else "fail"
-    return f"{prefix}_{suffix}"
-
-
 def save_reports(
     output_directory: Path,
     *,
@@ -122,23 +116,18 @@ def save_reports(
         comments_review.to_csv(temporary_directory / "comments_review.csv", index=False)
         write_json_atomic(temporary_directory / "metrics.json", metrics_by_category)
         write_json_atomic(temporary_directory / "comments_audit.json", comments_audit)
-        evaluation_passed = baseline_comparison["checks_passed"] and comments_audit["passed"]
-        status = _reproduction_status(baseline_comparison, comments_audit["passed"])
-        historical_reproduction_passed = (
-            evaluation_passed if baseline_comparison["fully_verified"] else None
-        )
+        evaluation_passed = comments_audit["passed"]
         report = {
             "schema": "e_cup.gemma_lora_post_training_evaluation",
-            "schema_version": 1,
+            "schema_version": 2,
             "solution": solution,
             "scope": scope,
             "rows_scored": len(predictions),
             "holdout_rows": holdout_rows,
             "evaluation_passed": evaluation_passed,
-            "historical_reproduction_status": status,
-            "historical_reproduction_passed": historical_reproduction_passed,
-            "reproduction_passed": historical_reproduction_passed,
-            "baseline_comparison": baseline_comparison,
+            "metrics": metrics_by_category,
+            "reference_comparison_passed": baseline_comparison["checks_passed"],
+            "reference_comparison": baseline_comparison,
             "comments_audit": comments_audit,
             "provenance": {
                 "base_model_revision": training_manifest["base_model_revision"],
@@ -154,7 +143,7 @@ def save_reports(
                 "comments_audit": "comments_audit.json",
             },
         }
-        write_json_atomic(temporary_directory / "reproduction_report.json", report)
+        write_json_atomic(temporary_directory / "evaluation_report.json", report)
         temporary_directory.replace(output_directory)
     return report
 
@@ -279,5 +268,5 @@ def run_solution_evaluation(
     )
     print(f"Post-training evaluation: {output_directory}")
     print(f"Evaluation passed: {report['evaluation_passed']}")
-    print(f"Historical reproduction: {report['historical_reproduction_status']}")
+    print(f"Reference comparison: {report['reference_comparison_passed']}")
     return output_directory

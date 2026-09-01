@@ -6,7 +6,7 @@ import random
 from pathlib import Path
 from typing import Any
 
-from scripts.common.training.evaluation import add_prediction_columns, calculate_binary_metrics
+from scripts.common.training.evaluation import add_prediction_columns, select_best_threshold
 from scripts.common.training.lora_training import (
     TrainingProfile,
     find_existing_product_images,
@@ -17,7 +17,6 @@ from scripts.common.training.lora_training import (
 )
 
 EVALUATION_BATCH_SIZE = 2
-PRODUCTION_THRESHOLD = 0.7
 
 PROFILE = TrainingProfile(
     category="БАД",
@@ -36,11 +35,6 @@ PROFILE = TrainingProfile(
         "selection": "random_from_all_available",
         "exif_transpose": False,
         "max_image_side": None,
-    },
-    default_inference={
-        "max_images": 1,
-        "aggregation": "single",
-        "threshold": PRODUCTION_THRESHOLD,
     },
 )
 
@@ -64,7 +58,7 @@ def evaluate_supplements_adapter(
     images_directory: Path,
     output_directory: Path,
 ) -> dict[str, Any]:
-    """Evaluate the fixed production policy on the supplements holdout."""
+    """Select the production threshold on the supplements holdout."""
     model.eval()
     model.config.use_cache = True
     processor.tokenizer.padding_side = "left"
@@ -78,21 +72,26 @@ def evaluate_supplements_adapter(
         max_images=1,
         batch_size=EVALUATION_BATCH_SIZE,
     )
-    predictions = add_prediction_columns(predictions, "p_img1", PRODUCTION_THRESHOLD)
-    predictions.to_csv(output_directory / "validation_predictions.csv", index=False)
-    metrics = calculate_binary_metrics(
-        predictions["label"],
-        predictions["probability"],
-        PRODUCTION_THRESHOLD,
+    selection = select_best_threshold(predictions["label"], predictions["p_img1"])
+    predictions = add_prediction_columns(
+        predictions,
+        "p_img1",
+        float(selection["threshold"]),
     )
+    predictions["threshold"] = float(selection["threshold"])
+    predictions.to_csv(output_directory / "validation_predictions.csv", index=False)
     validation = {
         "selected_mode": "single_first_image",
-        "threshold_policy": "fixed",
-        "metrics": metrics,
+        "threshold_policy": "validation_f1_then_precision_then_threshold",
+        **selection,
     }
     write_json_atomic(output_directory / "selection.json", validation)
     return {
-        "inference": dict(PROFILE.default_inference or {}),
+        "inference": {
+            "max_images": 1,
+            "aggregation": "single",
+            "threshold": selection["threshold"],
+        },
         "validation": validation,
     }
 
